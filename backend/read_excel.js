@@ -60,7 +60,7 @@ async function main() {
         activity_description: row['Hoạt động (60 Phút)'] || 'Không có mô tả',
         duration_minutes: 60,
         reference_pdfs: row['Tài liệu tham khảo (trong PDF)'] ? [row['Tài liệu tham khảo (trong PDF)']] : [],
-        embedded_url: row['Link'] ? [row['Link']] : [],
+        embedded_url: row['Link'] ? row['Link'] : [],
       }
     });
 
