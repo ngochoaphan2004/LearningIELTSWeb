@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './config/firebase';
+import apiClient from './config/axios';
 import Auth from './pages/Auth';
 import Dashboard from './pages/Dashboard';
 import FocusMode from './pages/FocusMode';
@@ -20,12 +21,7 @@ function App() {
       if (user) {
         try {
           const idToken = await user.getIdToken();
-          const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
-          await fetch(`${backendUrl}/api/auth/sync`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ idToken })
-          });
+          await apiClient.post('/api/auth/sync', { idToken });
           setIsAuthenticated(true);
         } catch (error) {
           console.error("Lỗi đồng bộ tài khoản", error);
