@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  # --- 1. Service Database (PostgreSQL) ---
+  db:
+    image: postgres:15-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: phanngochoa
+      POSTGRES_DB: learningieltsweb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  # --- 2. Service Backend (Node.js) ---
+  backend:
+    build: ./backend
+    container_name: node_backend
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:phanngochoa@db:5432/learningieltsweb?schema=public
+      - PORT=3000
+    command: sh -c "npx prisma db push && node index.js"
+    depends_on:
+      - db
+
+  # --- 3. Service Frontend (React/Nginx) ---
+  frontend:
+    build: ./web
+    container_name: react_frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+
+volumes:
+  pgdata:
