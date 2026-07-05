@@ -20,7 +20,8 @@ function App() {
       if (user) {
         try {
           const idToken = await user.getIdToken();
-          await fetch('http://localhost:3000/api/auth/sync', {
+          const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+          await fetch(`${backendUrl}/api/auth/sync`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ idToken })
