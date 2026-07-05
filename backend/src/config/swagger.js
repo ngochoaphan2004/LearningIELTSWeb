@@ -28,7 +28,7 @@ const options = {
       bearerAuth: []
     }]
   },
-  apis: ['./src/routes/*.js'], // Quét tất cả file js trong thư mục routes để tìm OpenAPI annotation
+  apis: ['./src/routes/*.js'], // Scan all js files in routes folder for OpenAPI annotations
 };
 
 const specs = swaggerJsdoc(options);

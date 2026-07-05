@@ -7,10 +7,10 @@ const syncUser = async (req, res) => {
       return res.status(400).json({ error: 'Missing idToken' });
     }
 
-    // Cập nhật/Tạo mới User trong Database
+    // Update/Create User in Database
     const user = await authService.syncUser(idToken);
 
-    // Chỉ trả về thông tin User, KHÔNG set Cookie hay tạo JWT nào cả
+    // Only return User info, DO NOT set Cookie or create any JWT
     res.json({ message: 'User synchronized successfully', user });
   } catch (error) {
     res.status(401).json({ error: error.message });

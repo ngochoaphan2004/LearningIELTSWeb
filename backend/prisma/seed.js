@@ -21,7 +21,7 @@ async function main() {
   // Create the Course
   const course = await prisma.course.create({
     data: {
-      title: 'Học IELTS cùng Hòa (16 ngày)',
+      title: 'Học IELTS cùng Hòa (16 tuần)',
       description: 'Lộ trình chi tiết từng ngày trích xuất từ file Excel, giúp bạn nắm vững kiến thức 4 kỹ năng.',
       total_days: data.length,
       focus_skill: 'All Skills',
@@ -36,10 +36,14 @@ async function main() {
   const sessions = [];
 
   for (const row of data) {
-    // Tên bài học (Title): Lấy kết hợp Tuần và Thứ nếu có, hoặc chỉ Thứ
     let title = row['Thứ'] || `Day ${dayCounter}`;
+    
+    let week_number = 1;
     if (row['Tuần']) {
-      title = `${row['Tuần']} - ${title}`;
+      const match = String(row['Tuần']).match(/\d+/);
+      if (match) {
+        week_number = parseInt(match[0], 10);
+      }
     }
 
     const session = await prisma.studySession.create({
@@ -47,6 +51,7 @@ async function main() {
         courseId: course.id,
         title: title,
         day_number: dayCounter,
+        week_number: week_number,
         focus_skill: row['Kỹ năng trọng tâm'] || 'Tự ôn tập',
         activity_description: row['Hoạt động (60 Phút)'] || 'Không có mô tả',
         duration_minutes: 60,

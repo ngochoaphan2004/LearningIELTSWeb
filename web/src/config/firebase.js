@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 
-// TODO: Thay thế cục cấu hình này bằng Config thực tế từ Firebase Console của bạn
+// TODO: Replace this with actual Config from your Firebase Console
 const firebaseConfig = {
   apiKey: "AIzaSyBuQ3Dh9gEk3VvzgGGJCM_phW5kXzZtJdM",
   authDomain: "learningieltsweb.firebaseapp.com",
@@ -17,7 +17,7 @@ let auth;
 let googleProvider;
 
 try {
-  // Khởi tạo Firebase
+  // Initialize Firebase
   app = initializeApp(firebaseConfig);
   auth = getAuth(app);
   googleProvider = new GoogleAuthProvider();

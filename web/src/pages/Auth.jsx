@@ -21,26 +21,13 @@ const Auth = () => {
     setErrorMsg('');
 
     try {
-      // Bước 1: Mở popup cho người dùng đăng nhập bằng tài khoản Google
+      // Step 1: Open popup for user to login with Google account
       const result = await signInWithPopup(auth, googleProvider);
       
-      // Lấy idToken từ Firebase
+      // Get idToken from Firebase
       const idToken = await result.user.getIdToken();
 
-      // Bước 2: Bắn idToken này xuống Backend để đồng bộ Database
-      const response = await fetch('http://localhost:3000/api/auth/sync', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ idToken })
-      });
-
-      if (!response.ok) {
-        throw new Error('Không thể đồng bộ với hệ thống IELTS');
-      }
-
-      // Đăng nhập và lưu DB thành công -> Chuyển vào Dashboard
+      // Login successful, App.jsx will automatically call sync API and change state
       navigate('/');
     } catch (error) {
       console.error(error);

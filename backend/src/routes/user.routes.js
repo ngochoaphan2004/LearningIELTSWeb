@@ -19,4 +19,28 @@ const authMiddleware = require('../middlewares/auth.middleware');
  */
 router.get('/me/dashboard', authMiddleware, userController.getDashboard);
 
+/**
+ * @swagger
+ * /api/users/leaderboard:
+ *   get:
+ *     summary: Get leaderboard
+ *     tags: [Users]
+ *     responses:
+ *       200:
+ *         description: Leaderboard array
+ */
+router.get('/leaderboard', authMiddleware, userController.getLeaderboard);
+
+/**
+ * @swagger
+ * /api/users/me/courses:
+ *   get:
+ *     summary: Get user's enrolled courses
+ *     tags: [Users]
+ *     responses:
+ *       200:
+ *         description: Array of enrolled courses
+ */
+router.get('/me/courses', authMiddleware, userController.getMyCourses);
+
 module.exports = router;

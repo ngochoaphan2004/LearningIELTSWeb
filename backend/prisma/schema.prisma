@@ -50,10 +50,13 @@ model StudySession {
   course               Course   @relation(fields: [courseId], references: [id])
   title                String
   day_number           Int
+  week_number          Int?
   focus_skill          String?
   activity_description String
   duration_minutes     Int      @default(60)
   reference_pdfs       String[] // Array of PDF files
+  embedded_url         String?  // Link URL to embed data
+
 
   userProgress         UserSessionProgress[]
 }
@@ -66,6 +69,7 @@ model UserSessionProgress {
   session        StudySession @relation(fields: [sessionId], references: [id])
   status         String       // Status: LOCKED, IN_PROGRESS, COMPLETED, MISSED
   scheduled_date DateTime
+  started_at     DateTime?
   completed_at   DateTime?
 }
 

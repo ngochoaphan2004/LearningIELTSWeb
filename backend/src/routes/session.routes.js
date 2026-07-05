@@ -5,6 +5,42 @@ const authMiddleware = require('../middlewares/auth.middleware');
 
 /**
  * @swagger
+ * /api/sessions/{id}/start:
+ *   post:
+ *     summary: Start a study session (mark as IN_PROGRESS and set started_at)
+ *     tags: [Sessions]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Session started successfully
+ */
+router.post('/:id/start', authMiddleware, sessionController.startSession);
+
+/**
+ * @swagger
+ * /api/sessions/{id}/reset:
+ *   post:
+ *     summary: Reset a study session timer
+ *     tags: [Sessions]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Session timer reset successfully
+ */
+router.post('/:id/reset', authMiddleware, sessionController.resetSession);
+
+/**
+ * @swagger
  * /api/sessions/complete:
  *   post:
  *     summary: Mark a session as completed

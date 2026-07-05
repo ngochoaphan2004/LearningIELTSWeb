@@ -5,6 +5,9 @@ import { auth } from './config/firebase';
 import Auth from './pages/Auth';
 import Dashboard from './pages/Dashboard';
 import FocusMode from './pages/FocusMode';
+import Courses from './pages/Courses';
+import MyCourses from './pages/MyCourses';
+import CourseDetail from './pages/CourseDetail';
 import './index.css';
 
 function App() {
@@ -12,21 +15,32 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Lắng nghe trạng thái đăng nhập từ Firebase (tự động nhớ trạng thái kể cả khi F5)
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    // Listen to Firebase auth state (automatically remembers state even on reload)
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        setIsAuthenticated(true);
+        try {
+          const idToken = await user.getIdToken();
+          await fetch('http://localhost:3000/api/auth/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken })
+          });
+          setIsAuthenticated(true);
+        } catch (error) {
+          console.error("Lỗi đồng bộ tài khoản", error);
+          setIsAuthenticated(false);
+        }
       } else {
         setIsAuthenticated(false);
       }
       setLoading(false);
     });
 
-    // Hủy lắng nghe khi component unmount
+    // Cleanup listener on unmount
     return () => unsubscribe();
   }, []);
 
-  // Màn hình chờ siêu tốc trong lúc Firebase kiểm tra Cookie/IndexedDB
+  // Fast loading screen while Firebase checks Cookie/IndexedDB
   if (loading) {
     return (
       <div className="flex-center" style={{ height: '100vh', color: 'var(--text-secondary)' }}>
@@ -48,6 +62,18 @@ function App() {
         <Route
           path="/"
           element={isAuthenticated ? <Dashboard /> : <Navigate to="/auth" />}
+        />
+        <Route
+          path="/courses"
+          element={isAuthenticated ? <Courses /> : <Navigate to="/auth" />}
+        />
+        <Route
+          path="/courses/:id"
+          element={isAuthenticated ? <CourseDetail /> : <Navigate to="/auth" />}
+        />
+        <Route
+          path="/my-courses"
+          element={isAuthenticated ? <MyCourses /> : <Navigate to="/auth" />}
         />
         <Route
           path="/session/:id"

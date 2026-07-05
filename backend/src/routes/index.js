@@ -6,11 +6,13 @@ const userRoutes = require('./user.routes');
 const feedRoutes = require('./feed.routes');
 const sessionRoutes = require('./session.routes');
 const courseRoutes = require('./course.routes');
+const uploadRoutes = require('./upload.routes');
 
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/feed', feedRoutes);
 router.use('/sessions', sessionRoutes);
 router.use('/courses', courseRoutes);
+router.use('/upload', uploadRoutes);
 
 module.exports = router;

@@ -1,4 +1,4 @@
-const adminAuth = require('../config/firebase');
+const { adminAuth } = require('../config/firebase');
 const prisma = require('../config/prisma');
 
 const syncUser = async (idToken) => {
@@ -6,7 +6,7 @@ const syncUser = async (idToken) => {
     throw new Error("Firebase Admin is not initialized. Please add firebaseServiceAccount.json.");
   }
 
-  // 1. Xác thực idToken qua Firebase
+  // 1. Verify idToken via Firebase
   const decodedToken = await adminAuth.verifyIdToken(idToken);
   const { email, name, picture, uid } = decodedToken;
 
@@ -14,7 +14,7 @@ const syncUser = async (idToken) => {
     throw new Error("Email not found in Google Account");
   }
 
-  // 2. Cập nhật hoặc tạo mới User trong CSDL Postgres
+  // 2. Update or create new User in Postgres DB
   let user = await prisma.user.findUnique({ where: { email } });
 
   if (!user) {
@@ -29,7 +29,7 @@ const syncUser = async (idToken) => {
       }
     });
   } else {
-    // Cập nhật lại tên/avatar nếu có thay đổi từ Google
+    // Update name/avatar if changed from Google
     user = await prisma.user.update({
       where: { email },
       data: {

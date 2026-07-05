@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
-import { Calendar as CalendarIcon, Flame, BookOpen, AlertCircle, Play, ChevronRight, ChevronLeft, X, Menu } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Calendar as CalendarIcon, Flame, BookOpen, AlertCircle, Play, ChevronRight, ChevronLeft, X, Menu, Loader } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import TopNav from '../components/TopNav';
+import Footer from '../components/Footer';
+import apiClient from '../config/axios';
 
 const DashboardHero = ({ onStart }) => (
   <section className="hero-section">
@@ -24,7 +26,7 @@ const DashboardHero = ({ onStart }) => (
   </section>
 );
 
-const MonthlyCalendar = ({ user }) => {
+const MonthlyCalendar = ({ completedSessions = [], missedSessions = [] }) => {
   const [viewingMonth, setViewingMonth] = useState(new Date());
 
   const handlePrevMonth = () => {
@@ -54,21 +56,25 @@ const MonthlyCalendar = ({ user }) => {
   for (let i = 0; i < startOffset; i++) {
     days.push(<div key={`empty-${i}`} />);
   }
+  
   const today = new Date();
   const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
   
-  const seed = user && user.id ? user.id : 0;
-  
+  const completedDates = completedSessions.map(s => new Date(s.createdAt).toDateString());
+  const missedDates = missedSessions.map(s => new Date(s.createdAt).toDateString());
+
   for (let i = 1; i <= daysInMonth; i++) {
     let statusClass = '';
-    if (isCurrentMonth) {
-      if (i < 14) statusClass = 'completed';
-      if (i === 14) statusClass = 'missed';
-      if (i === 15 && (!user || user.isMe)) statusClass = 'today';
-    } else {
-      if ((i + seed) % 5 === 0) statusClass = 'missed';
-      else statusClass = 'completed';
+    const currentCellDate = new Date(year, month, i).toDateString();
+
+    if (completedDates.includes(currentCellDate)) {
+      statusClass = 'completed';
+    } else if (missedDates.includes(currentCellDate)) {
+      statusClass = 'missed';
+    } else if (isCurrentMonth && today.getDate() === i) {
+      statusClass = 'today';
     }
+
     days.push(<div key={`day-${i}`} className={`cal-day ${statusClass}`}>{i}</div>);
   }
 
@@ -89,18 +95,32 @@ const MonthlyCalendar = ({ user }) => {
 const Dashboard = () => {
   const navigate = useNavigate();
   const [selectedUser, setSelectedUser] = useState(null);
+  const [dashboardData, setDashboardData] = useState(null);
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock Data
-  const myStreak = 12;
-  const leaderboard = [
-    { id: 1, user: 'Hoàng Nam', avatar: 'N', streak: 45, maxStreak: 50, totalSessions: 120, isMe: false },
-    { id: 2, user: 'Trần Hoa', avatar: 'H', streak: 30, maxStreak: 35, totalSessions: 85, isMe: false },
-    { id: 3, user: 'Bạn', avatar: 'M', streak: 12, maxStreak: 15, totalSessions: 40, isMe: true },
-    { id: 4, user: 'Lê Minh', avatar: 'L', streak: 5, maxStreak: 20, totalSessions: 60, isMe: false },
-  ].sort((a, b) => b.streak - a.streak);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [dashRes, leadRes] = await Promise.all([
+          apiClient.get('/api/users/me/dashboard'),
+          apiClient.get('/api/users/leaderboard')
+        ]);
+        setDashboardData(dashRes.data);
+        setLeaderboard(leadRes.data);
+      } catch (error) {
+        console.error("Error fetching dashboard data", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   const handleStartSession = () => {
-    navigate('/session/15');
+    if (dashboardData?.next_session) {
+      navigate(`/session/${dashboardData.next_session.id}`);
+    }
   };
 
   // Modal to view other users' Dashboard
@@ -133,26 +153,37 @@ const Dashboard = () => {
     );
   };
 
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: 'var(--bg-primary)' }}>
+        <Loader className="spin" size={40} color="var(--accent-primary)" />
+      </div>
+    );
+  }
+
   return (
-    <>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-primary)' }}>
       <TopNav />
       <DashboardHero onStart={handleStartSession} />
 
-      <div className="container dashboard-layout">
+      <div className="container dashboard-layout" style={{ paddingBottom: '4rem', flex: 1 }}>
         
         {/* LEFT COLUMN: Personal Dashboard */}
         <div className="space-y-4 animate-fade-in">
           
           <div className="glass-panel streak-card" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <h3 style={{ color: 'var(--accent-warning)', marginBottom: '0.25rem' }}>Chuỗi ngày học liên tục</h3>
-              <p style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>{myStreak} <span style={{ fontSize: '1rem', fontWeight: 'normal', color: 'var(--text-secondary)' }}>ngày</span></p>
+              <h3 style={{ color: 'var(--accent-warning)', marginBottom: '0.25rem' }}>Số bài đã hoàn thành</h3>
+              <p style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>{dashboardData?.streak || 0} <span style={{ fontSize: '1rem', fontWeight: 'normal', color: 'var(--text-secondary)' }}>bài</span></p>
             </div>
             <Flame size={48} className="icon" />
           </div>
 
           <div className="glass-panel" style={{ padding: '1.5rem' }}>
-            <MonthlyCalendar user={{ id: 'me', isMe: true }} />
+            <MonthlyCalendar 
+              completedSessions={dashboardData?.completed_sessions || []} 
+              missedSessions={dashboardData?.missed_sessions || []} 
+            />
             <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent-success)' }}></div> Đã hoàn thành</span>
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent-danger)' }}></div> Bỏ lỡ</span>
@@ -163,12 +194,32 @@ const Dashboard = () => {
 
 
           <div className="glass-panel" style={{ padding: '2rem', background: 'linear-gradient(135deg, rgba(2, 132, 199, 0.05), rgba(14, 165, 233, 0.1))', border: '1px solid rgba(2, 132, 199, 0.2)' }}>
-            <div style={{ display: 'inline-block', padding: '0.25rem 0.75rem', background: 'var(--accent-primary)', color: 'white', borderRadius: '1rem', fontSize: '0.8rem', fontWeight: 600, marginBottom: '1rem' }}>BÀI HỌC TIẾP THEO (DAY 14)</div>
-            <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Reading Part 2: True/False/Not Given</h2>
-            <p style={{ marginBottom: '1.5rem' }}>Phân tích xu hướng và cách gộp nhóm dữ liệu hiệu quả.</p>
-            <button onClick={handleStartSession} className="btn btn-primary" style={{ width: '100%' }}>
-              <Play size={18}/> Bắt đầu buổi học (60 Phút)
-            </button>
+            {dashboardData?.next_session ? (
+              <>
+                <div style={{ display: 'inline-block', padding: '0.25rem 0.75rem', background: 'var(--accent-primary)', color: 'white', borderRadius: '1rem', fontSize: '0.8rem', fontWeight: 600, marginBottom: '1rem' }}>
+                  BÀI HỌC TIẾP THEO (DAY {dashboardData.next_session.day_number})
+                </div>
+                <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Tuần {dashboardData.next_session.week_number} - {dashboardData.next_session.title}</h2>
+                <h3 style={{ fontSize: '1.1rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>{dashboardData.next_session.focus_skill}</h3>
+                <p style={{ marginBottom: '1.5rem' }}>{dashboardData.next_session.activity_description}</p>
+                <button onClick={handleStartSession} className="btn btn-primary" style={{ width: '100%' }}>
+                  <Play size={18}/> Bắt đầu buổi học ({dashboardData.next_session.duration_minutes} Phút)
+                </button>
+              </>
+            ) : !dashboardData?.current_course ? (
+              <div style={{ textAlign: 'center', padding: '1rem 0' }}>
+                <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Bắt đầu hành trình</h2>
+                <p style={{ marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>Bạn chưa đăng ký khóa học nào. Hãy khám phá và chọn một lộ trình phù hợp nhé!</p>
+                <button onClick={() => navigate('/courses')} className="btn btn-primary" style={{ width: 'fit-content', margin: '0 auto' }}>
+                  Khám phá khóa học
+                </button>
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '1rem 0' }}>
+                <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Chúc mừng!</h2>
+                <p style={{ marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>Bạn đã hoàn thành toàn bộ lộ trình khóa học hiện tại.</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -179,24 +230,26 @@ const Dashboard = () => {
               <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Flame size={20} color="var(--accent-warning)" /> Bảng xếp hạng</h3>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: '0.5rem' }}>
-              {leaderboard.map((player, index) => (
+              {leaderboard.map((player, index) => {
+                const isMe = dashboardData?.user_info?.id === player.id;
+                return (
                 <div 
                   key={player.id} 
                   className="feed-item" 
                   onClick={() => setSelectedUser(player)}
-                  style={{ padding: '1rem', display: 'flex', alignItems: 'center', borderRadius: '8px', margin: '0.5rem', background: player.isMe ? 'var(--bg-primary)' : 'transparent', border: player.isMe ? '1px solid var(--accent-primary)' : '1px solid transparent', cursor: 'pointer' }}
+                  style={{ padding: '1rem', display: 'flex', alignItems: 'center', borderRadius: '8px', margin: '0.5rem', background: isMe ? 'var(--bg-primary)' : 'transparent', border: isMe ? '1px solid var(--accent-primary)' : '1px solid transparent', cursor: 'pointer' }}
                 >
                   <div style={{ width: '30px', fontWeight: 700, color: index < 3 ? 'var(--accent-warning)' : 'var(--text-secondary)', fontSize: index < 3 ? '1.2rem' : '1rem' }}>
                     #{index + 1}
                   </div>
-                  <div className="avatar" style={{ width: '40px', height: '40px', background: player.isMe ? 'var(--accent-primary)' : 'rgba(2, 132, 199, 0.1)', color: player.isMe ? 'white' : 'var(--accent-primary)' }}>
+                  <div className="avatar" style={{ width: '40px', height: '40px', background: isMe ? 'var(--accent-primary)' : 'rgba(2, 132, 199, 0.1)', color: isMe ? 'white' : 'var(--accent-primary)' }}>
                     {player.avatar}
                   </div>
                   <div style={{ flex: 1, marginLeft: '0.75rem' }}>
-                    <p style={{ fontSize: '0.95rem', fontWeight: player.isMe ? 700 : 500, color: 'var(--text-primary)', margin: 0 }}>
-                      {player.user} {player.isMe && '(Bạn)'}
+                    <p style={{ fontSize: '0.95rem', fontWeight: isMe ? 700 : 500, color: 'var(--text-primary)', margin: 0 }}>
+                      {player.user} {isMe && '(Bạn)'}
                     </p>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>Tổng: {player.totalSessions} ngày</p>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>Tổng: {player.totalSessions} bài</p>
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--accent-warning)', fontWeight: 700 }}>
@@ -204,7 +257,7 @@ const Dashboard = () => {
                     </div>
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
           </div>
         </div>
@@ -212,7 +265,8 @@ const Dashboard = () => {
       </div>
       
       <UserModal />
-    </>
+      <Footer />
+    </div>
   );
 };
 

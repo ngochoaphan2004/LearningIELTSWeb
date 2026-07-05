@@ -20,7 +20,22 @@ const getCourseById = async (req, res) => {
       }
     });
     if (!course) return res.status(404).json({ message: 'Course not found' });
-    res.json(course);
+    
+    // Check if user is enrolled
+    let is_enrolled = false;
+    if (req.user && req.user.userId) {
+      const enrollment = await prisma.userCourse.findUnique({
+        where: {
+          userId_courseId: {
+            userId: req.user.userId,
+            courseId: req.params.id
+          }
+        }
+      });
+      if (enrollment) is_enrolled = true;
+    }
+    
+    res.json({ ...course, is_enrolled });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
