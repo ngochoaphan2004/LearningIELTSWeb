@@ -2,7 +2,7 @@ import axios from 'axios';
 import { auth } from './firebase';
 
 const apiClient = axios.create({
-  baseURL: 'http://localhost:3000', // Update this if backend runs on different port/host
+  baseURL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000', // Update this if backend runs on different port/host
   headers: {
     'Content-Type': 'application/json',
   },
