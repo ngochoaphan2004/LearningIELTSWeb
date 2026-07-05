@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String   @id @default(uuid())
+  name          String
+  email         String   @unique
+  avatar_url    String?
+  current_level Float?
+  target_score  Float?
+
+  userCourses    UserCourse[]
+  feedActivities FeedActivity[]
+  sessionProgress UserSessionProgress[]
+}
+
+model Course {
+  id               String   @id @default(uuid())
+  title            String
+  description      String?
+  total_days       Int
+  focus_skill      String?
+  total_duration   String?
+  thumbnail_url    String?
+
+  userCourses      UserCourse[]
+  sessions         StudySession[]
+}
+
+model UserCourse {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id])
+  status      String   @default("ACTIVE") // ACTIVE, COMPLETED
+  enrolled_at DateTime @default(now())
+
+  @@unique([userId, courseId])
+}
+
+model StudySession {
+  id                   String   @id @default(uuid())
+  courseId             String
+  course               Course   @relation(fields: [courseId], references: [id])
+  title                String
+  day_number           Int
+  focus_skill          String?
+  activity_description String
+  duration_minutes     Int      @default(60)
+  reference_pdfs       String[] // Array of PDF files
+
+  userProgress         UserSessionProgress[]
+}
+
+model UserSessionProgress {
+  id             String       @id @default(uuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id])
+  sessionId      String
+  session        StudySession @relation(fields: [sessionId], references: [id])
+  status         String       // Status: LOCKED, IN_PROGRESS, COMPLETED, MISSED
+  scheduled_date DateTime
+  completed_at   DateTime?
+}
+
+model FeedActivity {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  action_type String
+  content     String
+  created_at  DateTime @default(now())
+}
