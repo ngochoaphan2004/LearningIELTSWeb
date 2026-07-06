@@ -4,6 +4,37 @@ import { useNavigate, useParams } from 'react-router-dom';
 import TopNav from '../components/TopNav';
 import apiClient from '../config/axios';
 
+const TIME_ALLOCATIONS = [
+  {
+    title: "Nguồn đầu vào",
+    fraction: 1/4,
+    fractionText: "1/4 thời gian",
+    action: "Đọc 1 đoạn ngắn hoặc xem transcript",
+    desc: "Tập trung vào việc hiểu ngữ cảnh, cách dùng từ vựng mới và cấu trúc câu trong bài. Ghi chú lại các từ vựng hoặc cụm từ hay."
+  },
+  {
+    title: "Kỹ năng chính",
+    fraction: 1/3,
+    fractionText: "1/3 thời gian",
+    action: "Làm 1 bài tập vi mô",
+    desc: "Viết 1 đoạn Body, hoặc ghi âm 1 Part Speaking, hoặc giải 1 passage Reading."
+  },
+  {
+    title: "Sửa ngôn ngữ",
+    fraction: 1/4,
+    fractionText: "1/4 thời gian",
+    action: "Sửa 3 lỗi grammar/vocabulary",
+    desc: "Sử dụng từ điển hoặc công cụ kiểm tra ngữ pháp để xem lại các lỗi sai. Ghi chú lại nguyên nhân sai và cách khắc phục để tránh lặp lại."
+  },
+  {
+    title: "Rà lại",
+    fraction: 1/6,
+    fractionText: "1/6 thời gian",
+    action: "Điền từ vựng vào Sổ A, điền lỗi sai vào Bảng lỗi, nhẩm lại kiến thức.",
+    desc: "Đưa các từ vựng, cấu trúc và lỗi sai vào sổ tay. Ôn tập lại các flashcard đến hạn trong ngày để củng cố trí nhớ."
+  }
+];
+
 const FocusMode = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -206,6 +237,28 @@ const FocusMode = () => {
                   </ul>
                 </div>
               )}
+
+              {/* NEW BOX FOR TIME ALLOCATIONS */}
+              <div style={{ marginBottom: '1.5rem', marginTop: '1.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem' }}>
+                <h4 style={{ marginBottom: '1rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>GỢI Ý PHÂN BỔ THỜI GIAN</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {TIME_ALLOCATIONS.map((item, index) => {
+                    const minutes = Math.round(sessionData.duration_minutes * item.fraction);
+                    return (
+                      <div key={index} style={{ background: 'var(--bg-secondary)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-light)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                          <strong style={{ fontSize: '0.9rem', color: 'var(--accent-primary)' }}>{item.title}</strong>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--accent-warning)', background: 'rgba(245, 158, 11, 0.1)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
+                            ~{minutes}p
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem', color: 'var(--text-primary)' }}>{item.action}</div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{item.desc}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
               
               <div style={{ marginTop: 'auto', paddingTop: '2rem' }}>
                 {timeLeft <= (sessionData.duration_minutes * 60) / 2 ? (
