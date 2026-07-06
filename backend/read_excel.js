@@ -59,8 +59,8 @@ async function main() {
         focus_skill: row['Kỹ năng trọng tâm'] || 'Tự ôn tập',
         activity_description: row['Hoạt động (60 Phút)'] || 'Không có mô tả',
         duration_minutes: 60,
-        reference_pdfs: row['Tài liệu tham khảo (trong PDF)'] ? [row['Tài liệu tham khảo (trong PDF)']] : [],
-        embedded_url: row['Link'] ? row['Link'] : [],
+        reference_pdfs: row['Tài liệu tham khảo (trong PDF)'] ? row['Tài liệu tham khảo (trong PDF)'].split(';').map(s => s.trim()).filter(s => s) : [],
+        embedded_url: row['Link'] ? String(row['Link']).trim() : null,
       }
     });
 
