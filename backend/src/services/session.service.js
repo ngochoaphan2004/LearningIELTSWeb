@@ -23,6 +23,59 @@ const completeSession = async (userId, sessionId) => {
     data: { status: 'COMPLETED', completed_at: new Date() }
   });
 
+  // Calculate Streak based on Vietnam Time (UTC+7)
+  const getVietnamDateString = (date) => {
+    const d = new Date(date);
+    d.setUTCHours(d.getUTCHours() + 7);
+    return d.toISOString().split('T')[0]; // Returns YYYY-MM-DD
+  };
+
+  const completedAtDateStr = getVietnamDateString(Date.now());
+  const completedAtLocal = new Date(completedAtDateStr); // Midnight UTC of the local date
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  
+  let newStreak = user.current_streak || 0;
+  let newMaxStreak = user.max_streak || 0;
+  let newLastStudyDate = user.last_study_date;
+
+  if (!user.last_study_date) {
+    newStreak = 1;
+    newMaxStreak = 1;
+    newLastStudyDate = completedAtLocal;
+  } else {
+    // Both last_study_date and completedAtLocal are normalized to UTC midnight, 
+    // but we run getVietnamDateString again on last_study_date just in case
+    const lastDateStr = getVietnamDateString(user.last_study_date);
+    const lastDateLocal = new Date(lastDateStr);
+
+    const diffTime = completedAtLocal.getTime() - lastDateLocal.getTime();
+    const MathRoundDiffDays = Math.round(diffTime / (1000 * 3600 * 24));
+
+    if (MathRoundDiffDays === 1) {
+      // Studied on consecutive day
+      newStreak += 1;
+      newMaxStreak = Math.max(newMaxStreak, newStreak);
+      newLastStudyDate = completedAtLocal;
+    } else if (MathRoundDiffDays > 1) {
+      // Streak broken
+      newStreak = 1;
+      newLastStudyDate = completedAtLocal;
+    }
+  }
+
+  // Update user if streak changed
+  if (newStreak !== user.current_streak || newLastStudyDate !== user.last_study_date) {
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        current_streak: newStreak,
+        max_streak: newMaxStreak,
+        last_study_date: newLastStudyDate
+      }
+    });
+  }
+
   const session = await prisma.studySession.findUnique({ where: { id: sessionId } });
 
   // Create a notification to push to the Community Feed

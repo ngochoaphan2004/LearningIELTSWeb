@@ -26,7 +26,20 @@ const DashboardHero = ({ onStart }) => (
   </section>
 );
 
-const MonthlyCalendar = ({ completedSessions = [], missedSessions = [] }) => {
+const formatSessionTitle = (title) => {
+  if (!title) return title;
+  const t = title.toLowerCase();
+  if (t.includes('thứ 2')) return 'Buổi thứ 1';
+  if (t.includes('thứ 3')) return 'Buổi thứ 2';
+  if (t.includes('thứ 4')) return 'Buổi thứ 3';
+  if (t.includes('thứ 5')) return 'Buổi thứ 4';
+  if (t.includes('thứ 6')) return 'Buổi thứ 5';
+  if (t.includes('thứ 7')) return 'Buổi thứ 6';
+  if (t.includes('chủ nhật')) return 'Buổi thứ 7';
+  return title;
+};
+
+const MonthlyCalendar = ({ studyActivities = [], missedSessions = [] }) => {
   const [viewingMonth, setViewingMonth] = useState(new Date());
 
   const handlePrevMonth = () => {
@@ -60,19 +73,21 @@ const MonthlyCalendar = ({ completedSessions = [], missedSessions = [] }) => {
   const today = new Date();
   const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
   
-  const completedDates = completedSessions.map(s => new Date(s.createdAt).toDateString());
-  const missedDates = missedSessions.map(s => new Date(s.createdAt).toDateString());
+  // Dùng ngày created_at của FeedActivity để xác định ngày có học
+  const completedDates = studyActivities.map(s => new Date(s.created_at).toDateString());
+  const missedDates = missedSessions.map(s => new Date(s.scheduled_date || new Date()).toDateString());
 
   for (let i = 1; i <= daysInMonth; i++) {
     let statusClass = '';
     const currentCellDate = new Date(year, month, i).toDateString();
 
+    if (isCurrentMonth && today.getDate() === i) {
+      statusClass += ' today';
+    }
     if (completedDates.includes(currentCellDate)) {
-      statusClass = 'completed';
+      statusClass += ' completed';
     } else if (missedDates.includes(currentCellDate)) {
-      statusClass = 'missed';
-    } else if (isCurrentMonth && today.getDate() === i) {
-      statusClass = 'today';
+      statusClass += ' missed';
     }
 
     days.push(<div key={`day-${i}`} className={`cal-day ${statusClass}`}>{i}</div>);
@@ -171,17 +186,27 @@ const Dashboard = () => {
         {/* LEFT COLUMN: Personal Dashboard */}
         <div className="space-y-4 animate-fade-in">
           
-          <div className="glass-panel streak-card" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <h3 style={{ color: 'var(--accent-warning)', marginBottom: '0.25rem' }}>Số bài đã hoàn thành</h3>
-              <p style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>{dashboardData?.streak || 0} <span style={{ fontSize: '1rem', fontWeight: 'normal', color: 'var(--text-secondary)' }}>bài</span></p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="glass-panel streak-card" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3 style={{ color: 'var(--accent-warning)', marginBottom: '0.25rem', fontSize: '1rem' }}>Chuỗi ngày học</h3>
+                <p style={{ fontSize: '1.75rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>{dashboardData?.streak || 0} <span style={{ fontSize: '1rem', fontWeight: 'normal', color: 'var(--text-secondary)' }}>ngày</span></p>
+              </div>
+              <Flame size={40} className="icon" style={{ color: 'var(--accent-warning)' }} />
             </div>
-            <Flame size={48} className="icon" />
+
+            <div className="glass-panel streak-card" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3 style={{ color: 'var(--accent-primary)', marginBottom: '0.25rem', fontSize: '1rem' }}>Bài đã học</h3>
+                <p style={{ fontSize: '1.75rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>{dashboardData?.total_completed || 0} <span style={{ fontSize: '1rem', fontWeight: 'normal', color: 'var(--text-secondary)' }}>bài</span></p>
+              </div>
+              <BookOpen size={40} className="icon" style={{ color: 'var(--accent-primary)' }} />
+            </div>
           </div>
 
           <div className="glass-panel" style={{ padding: '1.5rem' }}>
             <MonthlyCalendar 
-              completedSessions={dashboardData?.completed_sessions || []} 
+              studyActivities={dashboardData?.study_activities || []} 
               missedSessions={dashboardData?.missed_sessions || []} 
             />
             <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
@@ -199,7 +224,7 @@ const Dashboard = () => {
                 <div style={{ display: 'inline-block', padding: '0.25rem 0.75rem', background: 'var(--accent-primary)', color: 'white', borderRadius: '1rem', fontSize: '0.8rem', fontWeight: 600, marginBottom: '1rem' }}>
                   BÀI HỌC TIẾP THEO (DAY {dashboardData.next_session.day_number})
                 </div>
-                <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Tuần {dashboardData.next_session.week_number} - {dashboardData.next_session.title}</h2>
+                <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Tuần {dashboardData.next_session.week_number} - {formatSessionTitle(dashboardData.next_session.title)}</h2>
                 <h3 style={{ fontSize: '1.1rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>{dashboardData.next_session.focus_skill}</h3>
                 <p style={{ marginBottom: '1.5rem' }}>{dashboardData.next_session.activity_description}</p>
                 <button onClick={handleStartSession} className="btn btn-primary" style={{ width: '100%' }}>

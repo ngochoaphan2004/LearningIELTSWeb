@@ -11,8 +11,11 @@ model User {
   name          String
   email         String   @unique
   avatar_url    String?
-  current_level Float?
-  target_score  Float?
+  current_level   Float?
+  target_score    Float?
+  current_streak  Int       @default(0)
+  max_streak      Int       @default(0)
+  last_study_date DateTime?
 
   userCourses    UserCourse[]
   feedActivities FeedActivity[]

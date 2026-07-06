@@ -14,6 +14,18 @@ const FocusMode = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [modalState, setModalState] = useState({ isOpen: false, type: '', message: '' });
   const [confirmModal, setConfirmModal] = useState({ isOpen: false });
+  const [activePdf, setActivePdf] = useState(null);
+
+  const getEmbedUrl = (url) => {
+    if (!url) return url;
+    if (url.includes('drive.google.com/file/d/')) {
+      const match = url.match(/(drive\.google\.com\/file\/d\/[^\/]+)/);
+      if (match) {
+        return `https://${match[1]}/preview`;
+      }
+    }
+    return url;
+  };
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -32,6 +44,7 @@ const FocusMode = () => {
         
         const res = await apiClient.get(`/api/sessions/${fetchId}`);
         setSessionData(res.data);
+        setActivePdf(res.data.embedded_url || (res.data.reference_pdfs && res.data.reference_pdfs.length > 0 ? res.data.reference_pdfs[0] : null));
         
         if (res.data.started_at) {
           const elapsed = Math.floor((Date.now() - new Date(res.data.started_at).getTime()) / 1000);
@@ -146,7 +159,7 @@ const FocusMode = () => {
           </button>
           <div style={{ fontWeight: '700', fontSize: '1.15rem', color: 'var(--text-primary)', textAlign: 'right' }}>
             <span style={{ color: 'var(--accent-primary)', marginRight: '0.25rem' }}>Day {sessionData.day_number}:</span>
-            <span style={{ opacity: 0.9 }}>Tuần {sessionData.week_number} - {sessionData.title}</span>
+            <span style={{ opacity: 0.9 }}>Tuần {sessionData.week_number}</span>
           </div>
         </div>
       </div>
@@ -180,6 +193,20 @@ const FocusMode = () => {
                 {sessionData.activity_description}
               </p>
               
+              {/* NEW BOX FOR REFERENCE PDFs */}
+              {sessionData.reference_pdfs && sessionData.reference_pdfs.length > 0 && (
+                <div style={{ marginBottom: '1.5rem', marginTop: '1.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem' }}>
+                  <h4 style={{ marginBottom: '1rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>NỘI DUNG TÌM KIẾM</h4>
+                  <ul style={{ paddingLeft: '1.5rem', color: 'var(--text-primary)', margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {sessionData.reference_pdfs.map((str, index) => (
+                      <li key={index} style={{ wordBreak: 'break-word', lineHeight: 1.5 }}>
+                        {str}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
               <div style={{ marginTop: 'auto', paddingTop: '2rem' }}>
                 {timeLeft <= (sessionData.duration_minutes * 60) / 2 ? (
                   <button onClick={handleComplete} className="btn" style={{ width: '100%', background: 'var(--accent-success)', color: 'white' }}>
@@ -202,9 +229,9 @@ const FocusMode = () => {
           {/* Right Panel: PDF/Embedded View */}
           <div className="focus-right-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
             <div style={{ flex: 1, display: 'flex', minHeight: '500px', width: '100%', border: '1px solid var(--border-color)', borderRadius: '8px', overflow: 'hidden', background: 'white' }}>
-              {sessionData.embedded_url || (sessionData.reference_pdfs && sessionData.reference_pdfs.length > 0) ? (
+              {activePdf ? (
                 <iframe 
-                  src={sessionData.embedded_url || sessionData.reference_pdfs[0]} 
+                  src={getEmbedUrl(activePdf)} 
                   title="Tài liệu đính kèm"
                   style={{ flex: 1, width: '100%', height: '100%', border: 'none' }}
                   allowFullScreen
