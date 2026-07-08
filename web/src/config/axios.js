@@ -25,5 +25,25 @@ apiClient.interceptors.request.use(
     return Promise.reject(error);
   }
 );
-
+apiClient.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  async (error) => {
+    if (error.response && error.response.status === 401) {
+      const errorMessage = error.response.data?.error || '';
+      
+      if (errorMessage.includes('User not found in database') || errorMessage.includes('Invalid or expired Firebase token')) {
+        console.warn('Authentication error or user not found. Logging out and redirecting to login...');
+        try {
+          await auth.signOut();
+        } catch (e) {
+          console.error('Error signing out', e);
+        }
+        window.location.href = '/'; // Redirect to Home / Auth page
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 export default apiClient;
