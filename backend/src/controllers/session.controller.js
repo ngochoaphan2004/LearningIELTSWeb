@@ -64,12 +64,12 @@ const startSession = async (req, res) => {
 
 const completeSession = async (req, res) => {
   try {
-    const { sessionId } = req.body;
+    const { sessionId, notebookData } = req.body;
     const userId = req.user.userId;
     
     if (!userId || !sessionId) return res.status(400).json({ error: "Missing userId or sessionId" });
 
-    const progress = await sessionService.completeSession(userId, sessionId);
+    const progress = await sessionService.completeSession(userId, sessionId, notebookData);
     res.json({ message: "Session completed successfully", progress });
   } catch (error) {
     if (error.message.includes("tối thiểu 50%") || error.message.includes("chưa bắt đầu")) {

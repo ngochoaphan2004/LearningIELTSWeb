@@ -20,6 +20,9 @@ model User {
   userCourses    UserCourse[]
   feedActivities FeedActivity[]
   sessionProgress UserSessionProgress[]
+  vocabularyNotes VocabularyNote[]
+  errorLogs       ErrorLog[]
+  dictationNotes  DictationNote[]
 }
 
 model Course {
@@ -62,6 +65,9 @@ model StudySession {
 
 
   userProgress         UserSessionProgress[]
+  vocabularyNotes      VocabularyNote[]
+  errorLogs            ErrorLog[]
+  dictationNotes       DictationNote[]
 }
 
 model UserSessionProgress {
@@ -83,4 +89,45 @@ model FeedActivity {
   action_type String
   content     String
   created_at  DateTime @default(now())
+}
+
+model VocabularyNote {
+  id                 String       @id @default(uuid())
+  userId             String
+  user               User         @relation(fields: [userId], references: [id])
+  sessionId          String
+  session            StudySession @relation(fields: [sessionId], references: [id])
+  
+  phrase             String
+  meaning            String
+  example_sentence   String?
+  errors_in_sentence String?
+  
+  created_at         DateTime     @default(now())
+}
+
+model ErrorLog {
+  id                 String       @id @default(uuid())
+  userId             String
+  user               User         @relation(fields: [userId], references: [id])
+  sessionId          String
+  session            StudySession @relation(fields: [sessionId], references: [id])
+  
+  content_submitted  String
+  errors_found       String?
+  
+  created_at         DateTime     @default(now())
+}
+
+model DictationNote {
+  id                 String       @id @default(uuid())
+  userId             String
+  user               User         @relation(fields: [userId], references: [id])
+  sessionId          String
+  session            StudySession @relation(fields: [sessionId], references: [id])
+  
+  audio_link         String
+  dictation_text     String
+  
+  created_at         DateTime     @default(now())
 }

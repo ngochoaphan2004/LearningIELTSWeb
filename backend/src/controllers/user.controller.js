@@ -33,4 +33,16 @@ const getMyCourses = async (req, res) => {
   }
 };
 
-module.exports = { getDashboard, getLeaderboard, getMyCourses };
+const getUserDashboardById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ error: "Missing userId in params" });
+
+    const data = await userService.getUserDashboard(id);
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+module.exports = { getDashboard, getLeaderboard, getMyCourses, getUserDashboardById };

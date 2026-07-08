@@ -1,6 +1,6 @@
 const prisma = require('../config/prisma');
 
-const completeSession = async (userId, sessionId) => {
+const completeSession = async (userId, sessionId, notebookData) => {
   const progress = await prisma.userSessionProgress.findFirst({
     where: { userId, sessionId },
     include: { session: true }
@@ -77,6 +77,44 @@ const completeSession = async (userId, sessionId) => {
   }
 
   const session = await prisma.studySession.findUnique({ where: { id: sessionId } });
+
+  // Save Notebook Data if provided
+  if (notebookData && session) {
+    const skill = session.focus_skill || '';
+    if (skill.includes('Từ vựng') || skill.includes('Reading')) {
+      if (Array.isArray(notebookData.items)) {
+        const vocabNotes = notebookData.items.map(item => ({
+          userId,
+          sessionId,
+          phrase: item.phrase || '',
+          meaning: item.meaning || '',
+          example_sentence: item.example_sentence || '',
+          errors_in_sentence: item.errors_in_sentence || ''
+        }));
+        if (vocabNotes.length > 0) {
+          await prisma.vocabularyNote.createMany({ data: vocabNotes });
+        }
+      }
+    } else if (skill.includes('Writing')) {
+      await prisma.errorLog.create({
+        data: {
+          userId,
+          sessionId,
+          content_submitted: notebookData.content_submitted || '',
+          errors_found: notebookData.errors_found || ''
+        }
+      });
+    } else if (skill.includes('Listening')) {
+      await prisma.dictationNote.create({
+        data: {
+          userId,
+          sessionId,
+          audio_link: notebookData.audio_link || '',
+          dictation_text: notebookData.dictation_text || ''
+        }
+      });
+    }
+  }
 
   // Create a notification to push to the Community Feed
   if (session) {

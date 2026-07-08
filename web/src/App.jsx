@@ -9,6 +9,7 @@ import FocusMode from './pages/FocusMode';
 import Courses from './pages/Courses';
 import MyCourses from './pages/MyCourses';
 import CourseDetail from './pages/CourseDetail';
+import Notebooks from './pages/Notebooks';
 import './index.css';
 
 function App() {
@@ -71,6 +72,10 @@ function App() {
         <Route
           path="/my-courses"
           element={isAuthenticated ? <MyCourses /> : <Navigate to="/auth" />}
+        />
+        <Route
+          path="/notebooks"
+          element={isAuthenticated ? <Notebooks /> : <Navigate to="/auth" />}
         />
         <Route
           path="/session/:id"

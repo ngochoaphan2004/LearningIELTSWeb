@@ -140,6 +140,19 @@ const Dashboard = () => {
 
   // Modal to view other users' Dashboard
   const UserModal = () => {
+    const [userData, setUserData] = useState(null);
+    const [loadingUser, setLoadingUser] = useState(true);
+
+    useEffect(() => {
+      if (selectedUser) {
+        setLoadingUser(true);
+        apiClient.get(`/api/users/${selectedUser.id}/dashboard`)
+          .then(res => setUserData(res.data))
+          .catch(err => console.error("Error fetching user data", err))
+          .finally(() => setLoadingUser(false));
+      }
+    }, [selectedUser]);
+
     if (!selectedUser) return null;
     return (
       <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
@@ -162,7 +175,14 @@ const Dashboard = () => {
             <p style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--accent-primary)' }}>{selectedUser.totalSessions} buổi</p>
           </div>
           
-          <MonthlyCalendar user={selectedUser} />
+          {loadingUser ? (
+             <div style={{ padding: '2rem', textAlign: 'center' }}><Loader className="spin" size={24} color="var(--accent-primary)"/></div>
+          ) : (
+            <MonthlyCalendar 
+              studyActivities={userData?.study_activities || []} 
+              missedSessions={userData?.missed_sessions || []} 
+            />
+          )}
         </div>
       </div>
     );
@@ -270,11 +290,11 @@ const Dashboard = () => {
                   <div className="avatar" style={{ width: '40px', height: '40px', background: isMe ? 'var(--accent-primary)' : 'rgba(2, 132, 199, 0.1)', color: isMe ? 'white' : 'var(--accent-primary)' }}>
                     {player.avatar}
                   </div>
-                  <div style={{ flex: 1, marginLeft: '0.75rem' }}>
-                    <p style={{ fontSize: '0.95rem', fontWeight: isMe ? 700 : 500, color: 'var(--text-primary)', margin: 0 }}>
+                  <div style={{ flex: 1, marginLeft: '0.75rem', minWidth: 0 }}>
+                    <p style={{ fontSize: '0.95rem', fontWeight: isMe ? 700 : 500, color: 'var(--text-primary)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {player.user} {isMe && '(Bạn)'}
                     </p>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>Tổng: {player.totalSessions} bài</p>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Tổng: {player.totalSessions} bài</p>
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--accent-warning)', fontWeight: 700 }}>

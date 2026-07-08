@@ -460,7 +460,10 @@ p {
   border: 2px solid var(--accent-primary);
   color: var(--accent-primary);
   font-weight: 700;
-  background: #ffffff;
+}
+.cal-day.completed.today {
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--accent-success);
 }
 
 .feed-item {

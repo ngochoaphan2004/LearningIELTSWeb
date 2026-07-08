@@ -18,6 +18,7 @@ const authMiddleware = require('../middlewares/auth.middleware');
  *         description: Internal server error
  */
 router.get('/me/dashboard', authMiddleware, userController.getDashboard);
+router.get('/:id/dashboard', authMiddleware, userController.getUserDashboardById);
 
 /**
  * @swagger

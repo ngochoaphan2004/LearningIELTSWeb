@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Clock, CheckCircle, FileText, Loader } from 'lucide-react';
+import { ArrowLeft, Clock, CheckCircle, FileText, Loader, Plus, Trash2, ExternalLink } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import TopNav from '../components/TopNav';
 import apiClient from '../config/axios';
@@ -46,6 +46,35 @@ const FocusMode = () => {
   const [modalState, setModalState] = useState({ isOpen: false, type: '', message: '' });
   const [confirmModal, setConfirmModal] = useState({ isOpen: false });
   const [activePdf, setActivePdf] = useState(null);
+
+  // Thêm state cho Notebook
+  const [notebookData, setNotebookData] = useState({
+    vocabItems: [{ phrase: '', meaning: '', example_sentence: '', errors_in_sentence: '' }],
+    writingContent: '',
+    writingErrors: '',
+    dictationAudio: '',
+    dictationText: ''
+  });
+
+  const handleAddVocab = () => {
+    setNotebookData(prev => ({
+      ...prev,
+      vocabItems: [...prev.vocabItems, { phrase: '', meaning: '', example_sentence: '', errors_in_sentence: '' }]
+    }));
+  };
+
+  const handleRemoveVocab = (index) => {
+    setNotebookData(prev => ({
+      ...prev,
+      vocabItems: prev.vocabItems.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleVocabChange = (index, field, value) => {
+    const newItems = [...notebookData.vocabItems];
+    newItems[index][field] = value;
+    setNotebookData(prev => ({ ...prev, vocabItems: newItems }));
+  };
 
   const getEmbedUrl = (url) => {
     if (!url) return url;
@@ -148,7 +177,36 @@ const FocusMode = () => {
 
   const handleComplete = async () => {
     try {
-      await apiClient.post('/api/sessions/complete', { sessionId: id });
+      let payloadNotebook = null;
+      const skill = sessionData?.focus_skill || '';
+      
+      if (skill.includes('Từ vựng') || skill.includes('Reading')) {
+        const validItems = notebookData.vocabItems.filter(i => i.phrase.trim() !== '');
+        if (validItems.length > 0) {
+          payloadNotebook = { type: 'VOCABULARY', items: validItems };
+        }
+      } else if (skill.includes('Writing')) {
+        if (notebookData.writingContent.trim()) {
+          payloadNotebook = { 
+            type: 'WRITING', 
+            content_submitted: notebookData.writingContent, 
+            errors_found: notebookData.writingErrors 
+          };
+        }
+      } else if (skill.includes('Listening')) {
+        if (notebookData.dictationText.trim()) {
+          payloadNotebook = { 
+            type: 'DICTATION', 
+            audio_link: notebookData.dictationAudio, 
+            dictation_text: notebookData.dictationText 
+          };
+        }
+      }
+
+      await apiClient.post('/api/sessions/complete', { 
+        sessionId: id,
+        notebookData: payloadNotebook
+      });
       navigate('/');
     } catch (error) {
       console.error("Error completing session:", error);
@@ -279,23 +337,125 @@ const FocusMode = () => {
             </div>
           </div>
 
-          {/* Right Panel: PDF/Embedded View */}
+          {/* Right Panel: Notebook Form */}
           <div className="focus-right-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <div style={{ flex: 1, display: 'flex', minHeight: '500px', width: '100%', border: '1px solid var(--border-color)', borderRadius: '8px', overflow: 'hidden', background: 'white' }}>
-              {activePdf ? (
-                <iframe 
-                  src={getEmbedUrl(activePdf)} 
-                  title="Tài liệu đính kèm"
-                  style={{ flex: 1, width: '100%', height: '100%', border: 'none' }}
-                  allowFullScreen
-                />
-              ) : (
-                <div className="flex-center" style={{ width: '100%', height: '100%', flexDirection: 'column', color: 'var(--text-secondary)' }}>
-                  <FileText size={64} style={{ marginBottom: '1rem', opacity: 0.5 }} />
-                  <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>Tài liệu đính kèm</h3>
-                  <p>Không có tài liệu đính kèm cho buổi học này.</p>
+            
+            {/* Box mở tài liệu */}
+            {activePdf && (
+              <div className="glass-panel" style={{ padding: '1rem', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <FileText size={20} color="var(--accent-primary)" />
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Tài liệu bài học</span>
+                </div>
+                <a href={activePdf} target="_blank" rel="noopener noreferrer" className="btn btn-outline" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem' }}>
+                  <ExternalLink size={16} /> Mở tài liệu ở tab mới
+                </a>
+              </div>
+            )}
+
+            {/* Form điền bài */}
+            <div className="glass-panel" style={{ flex: 1, overflowY: 'auto', padding: '2rem', display: 'flex', flexDirection: 'column', background: 'var(--bg-primary)' }}>
+              <h3 style={{ marginBottom: '1.5rem', fontSize: '1.4rem', color: 'var(--text-primary)', fontWeight: 700, borderBottom: '2px solid var(--border-color)', paddingBottom: '0.75rem' }}>Báo cáo Bài làm</h3>
+              
+              {(!sessionData.focus_skill || (sessionData.focus_skill.includes('Từ vựng') || sessionData.focus_skill.includes('Reading'))) && (
+                <div>
+                  <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.95rem', lineHeight: 1.5 }}>Điền các từ vựng mới hoặc cấu trúc bạn học được vào đây để tự động lưu vào Sổ Từ Vựng.</p>
+                  
+                  {notebookData.vocabItems.map((item, index) => (
+                    <div key={index} style={{ background: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '12px', marginBottom: '1.25rem', position: 'relative', border: '1px solid var(--border-light)' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1rem' }}>
+                        <div>
+                          <label style={{ display: 'block', marginBottom: '0.35rem', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Cụm từ / Từ vựng <span style={{ color: 'var(--accent-danger)' }}>*</span></label>
+                          <input type="text" className="form-control" value={item.phrase} onChange={e => handleVocabChange(index, 'phrase', e.target.value)} placeholder="VD: Have a knack for..." style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)', outline: 'none', fontFamily: 'inherit', fontSize: '0.95rem', transition: 'border 0.2s' }} />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', marginBottom: '0.35rem', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Nghĩa <span style={{ color: 'var(--accent-danger)' }}>*</span></label>
+                          <input type="text" className="form-control" value={item.meaning} onChange={e => handleVocabChange(index, 'meaning', e.target.value)} placeholder="VD: Có năng khiếu về..." style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)', outline: 'none', fontFamily: 'inherit', fontSize: '0.95rem', transition: 'border 0.2s' }} />
+                        </div>
+                      </div>
+                      <div style={{ marginBottom: '1rem' }}>
+                        <label style={{ display: 'block', marginBottom: '0.35rem', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Câu ví dụ</label>
+                        <input type="text" className="form-control" value={item.example_sentence} onChange={e => handleVocabChange(index, 'example_sentence', e.target.value)} placeholder="Viết một câu áp dụng từ vựng này..." style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)', outline: 'none', fontFamily: 'inherit', fontSize: '0.95rem', transition: 'border 0.2s' }} />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '0.35rem', fontSize: '0.85rem', fontWeight: 600, color: '#991b1b' }}>Lỗi sai trong câu (Nếu có)</label>
+                        <input type="text" className="form-control" value={item.errors_in_sentence} onChange={e => handleVocabChange(index, 'errors_in_sentence', e.target.value)} placeholder="Ghi chú lại lỗi grammar/vocab đã mắc phải..." style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '6px', border: '1px solid #fca5a5', background: '#fef2f2', outline: 'none', fontFamily: 'inherit', fontSize: '0.95rem', color: '#991b1b' }} />
+                      </div>
+                      
+                      {notebookData.vocabItems.length > 1 && (
+                        <button onClick={() => handleRemoveVocab(index)} style={{ position: 'absolute', top: '12px', right: '12px', background: 'white', border: '1px solid var(--border-light)', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444', cursor: 'pointer', boxShadow: 'var(--shadow-sm)' }} title="Xóa từ này">
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  
+                  <button onClick={handleAddVocab} className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', justifyContent: 'center' }}>
+                    <Plus size={18} /> Thêm từ vựng mới
+                  </button>
                 </div>
               )}
+
+              {sessionData.focus_skill?.includes('Writing') && (
+                <div>
+                  <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.95rem', lineHeight: 1.5 }}>Lưu trữ bài viết của bạn và các lỗi sai đã sửa để xem lại trong Bảng Lỗi.</p>
+                  
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Đoạn văn đã viết <span style={{ color: 'var(--accent-danger)' }}>*</span></label>
+                    <textarea 
+                      className="form-control" 
+                      rows={12} 
+                      value={notebookData.writingContent} 
+                      onChange={e => setNotebookData({...notebookData, writingContent: e.target.value})} 
+                      placeholder="Nhập hoặc dán bài viết của bạn vào đây..." 
+                      style={{ width: '100%', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', resize: 'vertical', outline: 'none', fontFamily: 'inherit', fontSize: '1rem', lineHeight: 1.6, background: 'var(--bg-secondary)' }} 
+                    />
+                  </div>
+                  
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#991b1b' }}>Các lỗi sai đã phát hiện</label>
+                    <textarea 
+                      className="form-control" 
+                      rows={6} 
+                      value={notebookData.writingErrors} 
+                      onChange={e => setNotebookData({...notebookData, writingErrors: e.target.value})} 
+                      placeholder="Liệt kê các lỗi sai và cách sửa để rút kinh nghiệm..." 
+                      style={{ width: '100%', padding: '1rem', borderRadius: '8px', border: '1px solid #fca5a5', background: '#fef2f2', resize: 'vertical', outline: 'none', fontFamily: 'inherit', fontSize: '0.95rem', lineHeight: 1.6, color: '#991b1b' }} 
+                    />
+                  </div>
+                </div>
+              )}
+
+              {sessionData.focus_skill?.includes('Listening') && (
+                <div>
+                  <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.95rem', lineHeight: 1.5 }}>Ghi chép chính tả và lưu link audio để có thể nghe lại dễ dàng sau này.</p>
+                  
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Link Audio (YouTube, Drive...)</label>
+                    <input 
+                      type="url" 
+                      className="form-control" 
+                      value={notebookData.dictationAudio} 
+                      onChange={e => setNotebookData({...notebookData, dictationAudio: e.target.value})} 
+                      placeholder="https://..." 
+                      style={{ width: '100%', padding: '0.65rem 1rem', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', fontFamily: 'inherit', fontSize: '0.95rem', background: 'var(--bg-secondary)' }} 
+                    />
+                  </div>
+                  
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Đoạn văn chép chính tả <span style={{ color: 'var(--accent-danger)' }}>*</span></label>
+                    <textarea 
+                      className="form-control" 
+                      rows={14} 
+                      value={notebookData.dictationText} 
+                      onChange={e => setNotebookData({...notebookData, dictationText: e.target.value})} 
+                      placeholder="Gõ nội dung bạn nghe được vào đây..." 
+                      style={{ width: '100%', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', resize: 'vertical', outline: 'none', fontFamily: 'inherit', fontSize: '1rem', lineHeight: 1.6, background: 'var(--bg-secondary)' }} 
+                    />
+                  </div>
+                </div>
+              )}
+
             </div>
           </div>
         </div>
